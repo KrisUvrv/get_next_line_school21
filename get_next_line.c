@@ -6,94 +6,114 @@
 /*   By: ebloodbe <ebloodbe@student.21-school.ru    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/11/17 13:29:49 by ebloodbe          #+#    #+#             */
-/*   Updated: 2021/11/27 14:37:03 by ebloodbe         ###   ########.fr       */
+/*   Updated: 2021/12/09 10:25:22 by ebloodbe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-char *get_next_line(int fd)
+#ifndef BUFFER_SIZE
+# define BUFFER_SIZE 42
+#endif
+
+char	*ft_read_line(int fd, char *str, long count)
 {
-	char *line;
-	static char	*buffer;
-	
-	
-	//static char	buffer[BUFFER_SIZE + 1];
-	static int i;
-	int j;
-	static int count_lines;
-	
-	char *rest;
-	char *result;
-	long count;
-	
-	if (read(fd, buffer, 0) != 0 || BUFFER_SIZE <= 0)
-		return NULL;
-	line = (char *)malloc(sizeof(char));
-	line[0] = '\0';
-	if (buffer[i] == '\n')
+	char	*buff;
+
+	if (!str)
+	{
+		str = (char *)malloc(sizeof(char));
+		if (!str)
+			return (NULL);
+		str[0] = '\0';
+	}
+	buff = (char *)malloc((BUFFER_SIZE + 1) * sizeof(char));
+	if (!buff)
+		return (NULL);
+	while (!ft_strchr(str, '\n') && count != 0)
+	{
+		count = read(fd, buff, BUFFER_SIZE);
+		if (count == -1)
+		{
+			free(buff);
+			return (NULL);
+		}
+		buff[count] = '\0';
+		str = ft_strjoin(str, buff);
+	}
+	free(buff);
+	return (str);
+}
+
+char	*ft_line(char *str)
+{
+	int		i;
+	char	*line;
+
+	i = 0;
+	if (!str[i])
+		return (NULL);
+	while (str[i] && str[i] != '\n')
+		i++;
+	line = (char *)malloc(sizeof(char) * i + 1 + (str[i] == '\n'));
+	if (!line)
+		return (NULL);
+	i = 0;
+	while (str[i] && str[i] != '\n')
+	{
+		line[i] = str[i];
+		i++;
+	}
+	if (str[i] == '\n')
+	{
+		line[i] = str[i];
+		i++;
+	}
+	line[i] = '\0';
+	return (line);
+}
+
+char	*ft_trimstr(char *str)
+{
+	int		i;
+	int		j;
+	char	*trimstr;
+
+	i = 0;
+	while (str[i] && str[i] != '\n')
 	{
 		i++;
 	}
+	if (!str[i])
+	{
+		free(str);
+		return (NULL);
+	}
+	trimstr = (char *)malloc(sizeof(char) * ft_strlen(str) - i + 1);
+	if (!trimstr)
+		return (NULL);
+	i++;
 	j = 0;
-	while (count_lines == 0 || buffer[i] != '\n')
-	{
-		if (buffer[i] == '\0')
-		{
-			count = read(fd, buffer, BUFFER_SIZE);
-			if (count <= 0)
-				return (ft_return_line(line));
-			buffer[count] = '\0';
-			i = 0;
-		}
-		j = 0;
-		while (buffer[i + j] && buffer[i + j] != '\n')
-		{
-			j++;
-		}
-		rest = (char *)malloc(sizeof(char) * j + 1 + (buffer[i] == '\n'));
-		if (!rest)
-			return (ft_return_line(line));
-		
-		ft_strlcpy(rest, buffer + i, j);
-		i = i + j;
-		if (buffer[i] == '\n')
-		{
-			count_lines++;
-			rest[j++] = '\n';
-		}
-		rest[j] = '\0';
-		result = ft_strjoin(line, rest);
-		free(line);
-		free(rest);
-		line = result;
-	}
-	if (j == 0 && buffer[i] == '\n')
-	{
-		free(line);
-		line = (char *)malloc(sizeof(char) * 2);
-		line[0] = '\n';
-		line[1] = '\0';
-	}
-	return (ft_return_line(line));
+	while (str[i])
+		trimstr[j++] = str[i++];
+	trimstr[j] = '\0';
+	free(str);
+	return (trimstr);
 }
 
-int main(int argc, char **argv)
+char	*get_next_line(int fd)
 {
-	int	fd;
-	int i;
-	char *line; 
+	char		*line;
+	static char	*str;
+	long		count;
 
-	i = 16;
-	if (argc == 2)
-		fd = open(argv[1], O_RDONLY);
-	else
-		fd = 0;
-	while (i--)
-	{
-		line = get_next_line(fd);
-		printf("%s", line);
-	}
-	close (fd);
-	return (0);
+	count = 1;
+	if (read(fd, str, 0) != 0 || BUFFER_SIZE <= 0)
+		return (NULL);
+	str = ft_read_line(fd, str, count);
+	if (!str)
+		return (NULL);
+	line = ft_line(str);
+	str = ft_trimstr(str);
+	return (line);
 }
